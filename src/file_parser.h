@@ -108,9 +108,6 @@ bool FileParserBase<T>::FileExists(const char* path) {
 	return false;
 }
 
-
-
-
 template<typename T>
 FileParser<T>::FileParser() : file_desc_(NULL), buf_(NULL), buf_size_(0) {
 	buf_size_ = kDefaultBufSize;

@@ -31,12 +31,14 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <cstring>
 #include "src/util.h"
 
 #define DEFAULT_ALPHA 0.15
 #define DEFAULT_BETA 1.
 #define DEFAULT_L1 1.
 #define DEFAULT_L2 1.
+#define EPSILON 1e-6
 
 template<typename T>
 class FtrlSolver {
@@ -150,7 +152,10 @@ bool FtrlSolver<T>::Initialize(const char* path) {
 		return false;
 	}
 
-	fin >> alpha_ >> beta_ >> l1_ >> l2_ >> feat_num_ >> dropout_;
+    size_t n_num = 0;
+    size_t z_num = 0;
+
+	fin >> alpha_ >> beta_ >> l1_ >> l2_ >> feat_num_ >> dropout_ >> n_num >> z_num;
 	if (!fin || fin.eof()) {
 		fin.close();
 		return false;
@@ -158,17 +163,23 @@ bool FtrlSolver<T>::Initialize(const char* path) {
 
 	n_ = new T[feat_num_];
 	z_ = new T[feat_num_];
+    std::memset(n_, 0, sizeof(n_[0]) * feat_num_);
+    std::memset(z_, 0, sizeof(z_[0]) * feat_num_);
 
-	for (size_t i = 0; i < feat_num_; ++i) {
-		fin >> n_[i];
+    size_t idx = 0;
+    T val = 0;
+	for (size_t i = 0; i < n_num; ++i) {
+		fin >> idx >> val;
+        n_[idx] = val;
 		if (!fin || fin.eof()) {
 			fin.close();
 			return false;
 		}
 	}
 
-	for (size_t i = 0; i < feat_num_; ++i) {
-		fin >> z_[i];
+	for (size_t i = 0; i < z_num; ++i) {
+        fin >> idx >> val;
+        z_[idx] = val;
 		if (!fin || fin.eof()) {
 			fin.close();
 			return false;
@@ -275,7 +286,9 @@ bool FtrlSolver<T>::SaveModel(const char* path) {
 	fout << std::fixed << std::setprecision(kPrecision);
 	for (size_t i = 0; i < feat_num_; ++i) {
 		T w = GetWeight(i);
-		fout << w << "\n";
+        if (w < -EPSILON || w > EPSILON) {
+            fout << i << ":" << w << "\n";
+        }
 	}
 
 	fout.close();
@@ -293,17 +306,34 @@ bool FtrlSolver<T>::SaveModelDetail(const char* path) {
 	if (!fout.is_open()) {
 		return false;
 	}
+    size_t n_count = 0;
+    for (size_t i = 0; i < feat_num_; ++i) {
+        if (n_[i] < -EPSILON || n_[i] > EPSILON) {
+            ++n_count;
+        }
+    }
+    size_t z_count = 0;
+    for (size_t i = 0; i < feat_num_; ++i) {
+        if (z_[i] < -EPSILON || z_[i] > EPSILON) {
+            ++z_count;
+        }
+    }
 
 	fout << std::fixed << std::setprecision(kPrecision);
 	fout << alpha_ << "\t" << beta_ << "\t" << l1_ << "\t"
-		<< l2_ << "\t" << feat_num_ << "\t" << dropout_ << "\n";
+		<< l2_ << "\t" << feat_num_ << "\t" << dropout_ << "\t"
+         << n_count << "\t" << z_count << "\n";
 
 	for (size_t i = 0; i < feat_num_; ++i) {
-		fout << n_[i] << "\n";
+        if (n_[i] < -EPSILON || n_[i] > EPSILON) {
+            fout << i << " " << n_[i] << "\n";
+        }
 	}
 
 	for (size_t i = 0; i < feat_num_; ++i) {
-		fout << z_[i] << "\n";
+        if (z_[i] < -EPSILON || z_[i] > EPSILON) {
+            fout << i << " " << z_[i] << "\n";
+        }
 	}
 
 	fout.close();
@@ -315,8 +345,6 @@ bool FtrlSolver<T>::SaveModelAll(const char* path) {
 	std::string model_detail = std::string(path) + ".save";
 	return SaveModel(path) && SaveModelDetail(model_detail.c_str());
 }
-
-
 
 template<typename T>
 class LRModel {

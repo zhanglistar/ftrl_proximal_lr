@@ -67,7 +67,7 @@ public:
 		T l1,
 		T l2,
 		T dropout,
-        size_t feat_num,
+		size_t feat_num,
 		const char* model_file,
 		const char* train_file,
 		const char* test_file = NULL);
@@ -90,7 +90,7 @@ private:
 	bool cache_feature_num_;
 	FtrlSolver<T> solver_;
 	bool init_;
-    bool read_stdin_;
+  bool read_stdin_;
 };
 
 template<typename T>
