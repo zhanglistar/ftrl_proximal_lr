@@ -329,7 +329,7 @@ bool FtrlTrainer<T>::TrainImpl(
 				last_time = timer.ElapsedTime();
 			}
 		}
-
+        timer.StopTimer();
         if (!read_stdin_ && line_cnt > 0) {
             fprintf(
                 stdout,
